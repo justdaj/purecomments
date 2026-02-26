@@ -69,6 +69,8 @@ It provides:
 - `admin_username`
 - `admin_password_hash`
 - `sodium_key`
+- `timezone`
+- `date_format`
 - `privacy_policy_url`
 - `post_base_url`
 - `author` details
@@ -230,6 +232,8 @@ Then open:
 - `admin_username`: Username for admin login. Settings field: `Yes` (`Admin username`).
 - `admin_password_hash`: Password hash for admin login (required for auth). Settings field: `Yes` (written when setting `Admin password`).
 - `sodium_key`: Secret key used to encrypt/decrypt commenter emails. Do not rotate casually. Settings field: `No` (preserved automatically).
+- `timezone`: Timezone used when displaying timestamps in the admin UI. Settings field: `Yes` (`Timezone`).
+- `date_format`: PHP date format string used for admin timestamp display. Settings field: `Yes` (`Date format`).
 - `privacy_policy_url`: URL used by the frontend “Read the comment privacy notice” link. Settings field: `Yes` (`Privacy policy URL`).
 - `spam_challenge.question`: Human check question shown on the comment form. Settings field: `Yes` (`Challenge question`).
 - `spam_challenge.answer`: Expected answer for the human check (validated case-insensitively). Settings field: `Yes` (`Challenge answer`).

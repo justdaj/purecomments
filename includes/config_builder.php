@@ -1,6 +1,39 @@
 <?php
 declare(strict_types=1);
 
+function default_comments_timezone(): string
+{
+    return 'UTC';
+}
+
+function default_comments_date_format(): string
+{
+    return 'Y-m-d H:i';
+}
+
+function is_valid_timezone_id(string $timezone): bool
+{
+    return in_array($timezone, DateTimeZone::listIdentifiers(), true);
+}
+
+function normalize_comments_timezone(string $timezone): string
+{
+    $timezone = trim($timezone);
+    if ($timezone === '' || !is_valid_timezone_id($timezone)) {
+        return default_comments_timezone();
+    }
+    return $timezone;
+}
+
+function normalize_comments_date_format(string $dateFormat): string
+{
+    $dateFormat = trim($dateFormat);
+    if ($dateFormat === '') {
+        return default_comments_date_format();
+    }
+    return $dateFormat;
+}
+
 function build_config_php(array $d): string
 {
     $lines = [];
@@ -11,6 +44,8 @@ function build_config_php(array $d): string
     $lines[] = "    'admin_username' => " . var_export($d['admin_username'], true) . ',';
     $lines[] = "    'admin_password_hash' => " . var_export($d['admin_password_hash'], true) . ',';
     $lines[] = "    'sodium_key' => hex2bin(" . var_export($d['sodium_key_hex'], true) . '),';
+    $lines[] = "    'timezone' => " . var_export(normalize_comments_timezone((string)($d['timezone'] ?? default_comments_timezone())), true) . ',';
+    $lines[] = "    'date_format' => " . var_export(normalize_comments_date_format((string)($d['date_format'] ?? default_comments_date_format())), true) . ',';
     $lines[] = "    'privacy_policy_url' => " . var_export($d['privacy_policy_url'] ?? '/privacy#commenting', true) . ',';
     $lines[] = "    'spam_challenge' => [";
     $lines[] = "        'question' => " . var_export($d['spam_challenge_question'], true) . ',';

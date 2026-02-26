@@ -25,6 +25,8 @@ $messages = [];
 
 $form = [
     'admin_username' => (string)($config['admin_username'] ?? ''),
+    'timezone' => (string)($config['timezone'] ?? default_comments_timezone()),
+    'date_format' => (string)($config['date_format'] ?? default_comments_date_format()),
     'privacy_policy_url' => (string)($config['privacy_policy_url'] ?? '/privacy#commenting'),
     'spam_challenge_question' => (string)($config['spam_challenge']['question'] ?? ''),
     'spam_challenge_answer' => (string)($config['spam_challenge']['answer'] ?? ''),
@@ -47,6 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Invalid CSRF token.';
     } else {
         $form['admin_username'] = trim((string)($_POST['admin_username'] ?? ''));
+        $form['timezone'] = trim((string)($_POST['timezone'] ?? default_comments_timezone()));
+        $form['date_format'] = trim((string)($_POST['date_format'] ?? default_comments_date_format()));
         $form['privacy_policy_url'] = trim((string)($_POST['privacy_policy_url'] ?? ''));
         $adminPassword = (string)($_POST['admin_password'] ?? '');
         $adminPasswordConfirm = (string)($_POST['admin_password_confirm'] ?? '');
@@ -69,6 +73,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($form['privacy_policy_url'] === '') {
             $errors[] = 'Privacy policy URL is required.';
+        }
+        if (!is_valid_timezone_id($form['timezone'])) {
+            $errors[] = 'Timezone must be a valid PHP timezone identifier (e.g. UTC, Europe/London).';
+        }
+        if ($form['date_format'] === '') {
+            $errors[] = 'Date format is required.';
         }
         if ($form['spam_challenge_question'] === '') {
             $errors[] = 'Spam challenge question is required.';
@@ -127,6 +137,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'admin_username' => $form['admin_username'],
                 'admin_password_hash' => $passwordHash,
                 'sodium_key_hex' => bin2hex($existingSodium),
+                'timezone' => normalize_comments_timezone($form['timezone']),
+                'date_format' => normalize_comments_date_format($form['date_format']),
                 'privacy_policy_url' => $form['privacy_policy_url'],
                 'post_titles' => is_array($config['post_titles'] ?? null) ? $config['post_titles'] : [],
                 'spam_challenge_question' => $form['spam_challenge_question'],
@@ -214,6 +226,18 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
 
             <label for="moderation_base_url">Comments service URL</label>
             <input id="moderation_base_url" name="moderation_base_url" required placeholder="https://comments.example.com" value="<?php echo h($form['moderation_base_url']); ?>">
+
+            <label for="timezone">
+                Timezone
+                <small>(<a href="https://www.php.net/manual/en/timezones.php" target="_blank" rel="noopener noreferrer">PHP timezone list</a>)</small>
+            </label>
+            <input id="timezone" name="timezone" required placeholder="UTC" value="<?php echo h($form['timezone']); ?>">
+
+            <label for="date_format">
+                Date format
+                <small>(<a href="https://www.php.net/manual/en/datetime.format.php" target="_blank" rel="noopener noreferrer">PHP date format docs</a>)</small>
+            </label>
+            <input id="date_format" name="date_format" required placeholder="Y-m-d H:i" value="<?php echo h($form['date_format']); ?>">
 
             <label for="privacy_policy_url">Privacy policy URL</label>
             <input id="privacy_policy_url" name="privacy_policy_url" required placeholder="/privacy#commenting" value="<?php echo h($form['privacy_policy_url']); ?>">

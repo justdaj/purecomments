@@ -23,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $authorEmail = trim((string)($_POST['author_email'] ?? ''));
     $notifyEmail = trim((string)($_POST['notify_email'] ?? ''));
     $moderationBaseUrl = trim((string)($_POST['moderation_base_url'] ?? ''));
+    $timezone = trim((string)($_POST['timezone'] ?? default_comments_timezone()));
+    $dateFormat = trim((string)($_POST['date_format'] ?? default_comments_date_format()));
     $awsRegion = trim((string)($_POST['aws_region'] ?? ''));
     $awsAccessKey = trim((string)($_POST['aws_access_key'] ?? ''));
     $awsSecretKey = trim((string)($_POST['aws_secret_key'] ?? ''));
@@ -59,6 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($moderationBaseUrl === '' || !filter_var($moderationBaseUrl, FILTER_VALIDATE_URL)) {
         $errors[] = 'Moderation base URL must be valid (e.g. https://comments.example.com).';
     }
+    if (!is_valid_timezone_id($timezone)) {
+        $errors[] = 'Timezone must be a valid PHP timezone identifier (e.g. UTC, Europe/London).';
+    }
+    if ($dateFormat === '') {
+        $errors[] = 'Date format is required.';
+    }
 
     $sodiumHex = bin2hex(random_bytes(32));
 
@@ -67,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'admin_username' => $adminUsername,
             'admin_password_hash' => password_hash($adminPassword, PASSWORD_DEFAULT),
             'sodium_key_hex' => $sodiumHex,
+            'timezone' => normalize_comments_timezone($timezone),
+            'date_format' => normalize_comments_date_format($dateFormat),
             'privacy_policy_url' => '/privacy#commenting',
             'post_titles' => [],
             'spam_challenge_question' => $spamChallengeQuestion,
@@ -147,6 +157,18 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
 
             <label for="moderation_base_url">Comments service URL</label>
             <input id="moderation_base_url" name="moderation_base_url" required placeholder="https://comments.example.com" value="<?php echo h($_POST['moderation_base_url'] ?? ''); ?>">
+
+            <label for="timezone">
+                Timezone
+                <small>(<a href="https://www.php.net/manual/en/timezones.php" target="_blank" rel="noopener noreferrer">PHP timezone list</a>)</small>
+            </label>
+            <input id="timezone" name="timezone" required placeholder="UTC" value="<?php echo h($_POST['timezone'] ?? default_comments_timezone()); ?>">
+
+            <label for="date_format">
+                Date format
+                <small>(<a href="https://www.php.net/manual/en/datetime.format.php" target="_blank" rel="noopener noreferrer">PHP date format docs</a>)</small>
+            </label>
+            <input id="date_format" name="date_format" required placeholder="Y-m-d H:i" value="<?php echo h($_POST['date_format'] ?? default_comments_date_format()); ?>">
 
             <h2>Spam protection</h2>
             <label for="spam_challenge_question">Challenge question</label>

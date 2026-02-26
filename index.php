@@ -179,6 +179,10 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
 
 function send_reply_notification(array $config, array $parent, array $reply): void
 {
+    if (is_author_comment($config, $parent['email'] ?? null, (string)($parent['name'] ?? ''))) {
+        return;
+    }
+
     $to = $parent['email_plain'];
     if ($to === null || $to === '') {
         return;

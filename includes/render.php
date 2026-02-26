@@ -102,7 +102,7 @@ function render_admin_comments_table(
                             </a>
                         </span>
                         <time datetime="<?php echo e(str_replace(' ', 'T', $comment['created_at']) . 'Z'); ?>">
-                            <?php echo e(format_admin_datetime($comment['created_at'])); ?>
+                            <?php echo e(format_admin_datetime($comment['created_at'], $config)); ?>
                         </time>
                     </summary>
 
@@ -241,7 +241,7 @@ function render_admin_author_replies(
                         <span class="author-badge">You!</span>
                     <?php endif; ?>
                     <time datetime="<?php echo e(str_replace(' ', 'T', $reply['created_at']) . 'Z'); ?>">
-                        <?php echo e(format_admin_datetime($reply['created_at'])); ?>
+                        <?php echo e(format_admin_datetime($reply['created_at'], $config)); ?>
                     </time>
                 </div>
                 <div class="admin-author-reply-body">
@@ -387,11 +387,53 @@ function admin_comment_preview_text(string $html, int $maxLength = 170): string
     return rtrim(substr($text, 0, $maxLength - 1)) . '…';
 }
 
-function format_admin_datetime(string $value): string
+function format_admin_datetime(string $value, array $config): string
 {
-    $timestamp = strtotime($value);
-    if ($timestamp === false) {
-        return preg_replace('/:\d{2}$/', '', $value) ?? $value;
+    $raw = trim($value);
+    if ($raw === '') {
+        return $value;
     }
-    return gmdate('Y-m-d H:i', $timestamp);
+
+    try {
+        $utc = new DateTimeZone('UTC');
+        $timezone = resolve_config_timezone($config);
+    } catch (Throwable $e) {
+        return preg_replace('/:\d{2}$/', '', $raw) ?? $raw;
+    }
+
+    $date = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $raw, $utc);
+    if (!$date) {
+        $timestamp = strtotime($raw . ' UTC');
+        if ($timestamp === false) {
+            return preg_replace('/:\d{2}$/', '', $raw) ?? $raw;
+        }
+        $date = (new DateTimeImmutable('@' . $timestamp))->setTimezone($utc);
+    }
+
+    return $date
+        ->setTimezone($timezone)
+        ->format(resolve_config_date_format($config));
+}
+
+function resolve_config_timezone(array $config): DateTimeZone
+{
+    $configured = trim((string)($config['timezone'] ?? ''));
+    if ($configured === '') {
+        $configured = 'UTC';
+    }
+
+    try {
+        return new DateTimeZone($configured);
+    } catch (Throwable $e) {
+        return new DateTimeZone('UTC');
+    }
+}
+
+function resolve_config_date_format(array $config): string
+{
+    $format = trim((string)($config['date_format'] ?? ''));
+    if ($format === '') {
+        return 'Y-m-d H:i';
+    }
+    return $format;
 }
