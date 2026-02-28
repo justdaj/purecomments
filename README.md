@@ -50,7 +50,7 @@ It provides:
 
 ## Installation
 
-1. Deploy `purecomments` to your comments domain/subdomain.
+1. Deploy `purecomments` to your comments domain/subdomain or a subfolder path.
 2. Ensure filesystem permissions allow creating `config.php` and writing `db/`.
 3. Visit `/setup.php` and complete setup.
 4. Sign in at `/login.php`.
@@ -80,6 +80,9 @@ It provides:
 
 `config.php` is intentionally blocked via root `.htaccess`.
 
+Optional advanced setting:
+- `app_base_path`: Force URL prefix for admin/API routes if auto-detection is wrong behind a reverse proxy (examples: `''` for root, `'/comments'` for subfolder installs).
+
 ## Auth & Security
 
 - Admin auth is session-based (not HTTP Basic auth).
@@ -101,6 +104,10 @@ Base path: `/api`
   - Sends moderation email (if SES configured)
 
 If `config.php` is missing, API returns `503` with a setup hint.
+
+Rewrite-free fallback endpoints (supported automatically by `embed.js`):
+- `GET /api/index.php?endpoint=comments/{post_slug}`
+- `POST /api/index.php?endpoint=submit-comment`
 
 ## Embedding On Your Site
 

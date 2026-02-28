@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require __DIR__ . '/includes/url.php';
+
 if (!is_file(__DIR__ . '/config.php')) {
-    header('Location: /setup.php', true, 302);
+    header('Location: ' . pc_url('/setup.php'), true, 302);
     exit;
 }
 
@@ -175,21 +177,21 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Comments Settings</title>
-    <link rel="stylesheet" href="/public/style.css?v=<?php echo h((string)$styleVersion); ?>">
+    <link rel="stylesheet" href="<?php echo h(pc_url('/public/style.css', $config)); ?>?v=<?php echo h((string)$styleVersion); ?>">
 </head>
 <body class="admin">
     <main class="admin-container">
         <div class="admin-top-actions">
-            <a class="button" href="/">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-back"></use></svg>
+            <a class="button" href="<?php echo h(pc_url('/', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-back"></use></svg>
                 <span>Back to comments</span>
             </a>
-            <a class="button" href="/updates.php">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-upgrade"></use></svg>
+            <a class="button" href="<?php echo h(pc_url('/updates.php', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-upgrade"></use></svg>
                 <span>Updates</span>
             </a>
-            <a class="button danger" href="/logout.php">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-logout"></use></svg>
+            <a class="button danger" href="<?php echo h(pc_url('/logout.php', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-logout"></use></svg>
                 <span>Log out</span>
             </a>
         </div>
@@ -283,7 +285,7 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             <input id="source_name" name="source_name" value="<?php echo h($form['source_name']); ?>">
 
             <button type="submit">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-settings"></use></svg>
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-settings"></use></svg>
                 <span>Save settings</span>
             </button>
         </form>

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/url.php';
+
 function e(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
@@ -136,7 +138,7 @@ function render_admin_comments_table(
                             <input type="hidden" name="published_page" value="<?php echo e((string)$publishedPage); ?>">
                             <?php if ($context === 'pending') : ?>
                                 <button type="submit" name="action" value="publish">
-                                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-login"></use></svg>
+                                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-login"></use></svg>
                                     <span>Publish</span>
                                 </button>
                             <?php endif; ?>
@@ -148,7 +150,7 @@ function render_admin_comments_table(
                                 class="danger"
                                 onclick="return confirm('<?php echo e($isThreadRoot ? 'Delete this thread and all replies?' : 'Delete this comment?'); ?>');"
                             >
-                                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-delete"></use></svg>
+                                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-delete"></use></svg>
                                 <span><?php echo e($isThreadRoot ? 'Delete thread' : 'Delete'); ?></span>
                             </button>
                         </form>
@@ -164,7 +166,7 @@ function render_admin_comments_table(
                                 <textarea name="reply_content" rows="3" placeholder="Write a reply..." class="auto-grow"></textarea>
                             </label>
                             <button type="submit" name="action" value="reply">
-                                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-reply"></use></svg>
+                                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-reply"></use></svg>
                                 <span>Send reply</span>
                             </button>
                         </form>
@@ -255,12 +257,12 @@ function render_admin_author_replies(
                     <input type="hidden" name="published_page" value="<?php echo e((string)$publishedPage); ?>">
                     <?php if ($context === 'pending') : ?>
                         <button type="submit" name="action" value="publish">
-                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-login"></use></svg>
+                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-login"></use></svg>
                             <span>Publish</span>
                         </button>
                     <?php endif; ?>
                     <button type="submit" name="action" value="delete" class="danger" onclick="return confirm('Delete this reply?');">
-                        <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-delete"></use></svg>
+                        <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-delete"></use></svg>
                         <span>Delete reply</span>
                     </button>
                 </form>
@@ -277,7 +279,7 @@ function render_admin_author_replies(
                             <textarea name="reply_content" rows="2" placeholder="Write a reply..." class="auto-grow"></textarea>
                         </label>
                         <button type="submit" name="action" value="reply">
-                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-reply"></use></svg>
+                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-reply"></use></svg>
                             <span>Send reply</span>
                         </button>
                     </form>

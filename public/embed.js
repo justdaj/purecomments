@@ -49,7 +49,10 @@
 
     function loadComments() {
         contentArea.innerHTML = '<p>💭 Loading comments…</p>';
-        fetch(baseUrl + '/api/comments/' + slug)
+        apiFetch(
+            baseUrl + '/api/comments/' + slug,
+            baseUrl + '/api/index.php?endpoint=' + encodeURIComponent('comments/' + slug)
+        )
             .then(handleResponse)
             .then(function (data) {
                 renderCommentsSection(data || {});
@@ -284,13 +287,17 @@
                 surname: form.surname.value.trim(),
             };
 
-            fetch(baseUrl + '/api/submit-comment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            })
+            apiFetch(
+                baseUrl + '/api/submit-comment',
+                baseUrl + '/api/index.php?endpoint=' + encodeURIComponent('submit-comment'),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                }
+            )
                 .then(handleResponse)
                 .then(function (data) {
                     status.textContent = data.message || 'Thanks! I need to check your comment before it is published, but it should be live soon.';
@@ -377,6 +384,20 @@
     function autoGrow(element) {
         element.style.height = 'auto';
         element.style.height = element.scrollHeight + 'px';
+    }
+
+    function apiFetch(primaryUrl, fallbackUrl, init) {
+        return fetch(primaryUrl, init).then(function (response) {
+            if (response.status === 404 && fallbackUrl) {
+                return fetch(fallbackUrl, init);
+            }
+            return response;
+        }).catch(function () {
+            if (!fallbackUrl) {
+                throw new Error('Request failed');
+            }
+            return fetch(fallbackUrl, init);
+        });
     }
 
     function derivePostSlugFromLocation(pathname) {

@@ -1,12 +1,14 @@
 <?php
 declare(strict_types=1);
 
+require __DIR__ . '/../includes/url.php';
+
 if (!is_file(__DIR__ . '/../config.php')) {
     http_response_code(503);
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode([
         'error' => 'Service not configured',
-        'setup_url' => '/setup.php',
+        'setup_url' => pc_url('/setup.php'),
     ]);
     exit;
 }
@@ -32,12 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-if ($basePath !== '' && strpos($path, $basePath) === 0) {
-    $path = substr($path, strlen($basePath));
+// Optional rewrite-free routing fallback (e.g. /api/index.php?endpoint=comments/my-slug).
+$endpoint = trim((string)($_GET['endpoint'] ?? ''));
+if ($endpoint !== '') {
+    $path = '/' . ltrim($endpoint, '/');
+} else {
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    if ($basePath !== '' && strpos($path, $basePath) === 0) {
+        $path = substr($path, strlen($basePath));
+    }
+    $path = '/' . ltrim($path, '/');
 }
-$path = '/' . ltrim($path, '/');
 
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':

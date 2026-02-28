@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/url.php';
+
 function require_admin_login(array $config): void
 {
     if (!is_admin_logged_in($config)) {
-        header('Location: /login.php', true, 302);
+        header('Location: ' . pc_url('/login.php', $config), true, 302);
         exit;
     }
 }

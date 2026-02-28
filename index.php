@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require __DIR__ . '/includes/url.php';
+
 if (!is_file(__DIR__ . '/config.php')) {
-    header('Location: /setup.php', true, 302);
+    header('Location: ' . pc_url('/setup.php'), true, 302);
     exit;
 }
 
@@ -125,17 +127,17 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
     <title>Comments Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Ctext x='50%25' y='70%25' font-size='96' text-anchor='middle'%3E%F0%9F%92%AD%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/public/style.css?v=<?php echo e((string)$styleVersion); ?>">
+    <link rel="stylesheet" href="<?php echo e(pc_url('/public/style.css', $config)); ?>?v=<?php echo e((string)$styleVersion); ?>">
 </head>
 <body class="admin">
     <main class="admin-container">
         <div class="admin-top-actions">
-            <a class="button" href="/settings.php">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-settings"></use></svg>
+            <a class="button" href="<?php echo e(pc_url('/settings.php', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-settings"></use></svg>
                 <span>Settings</span>
             </a>
-            <a class="button danger" href="/logout.php">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-logout"></use></svg>
+            <a class="button danger" href="<?php echo e(pc_url('/logout.php', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo e(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-logout"></use></svg>
                 <span>Log out</span>
             </a>
         </div>

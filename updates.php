@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require __DIR__ . '/includes/url.php';
+
 if (!is_file(__DIR__ . '/config.php')) {
-    header('Location: /setup.php', true, 302);
+    header('Location: ' . pc_url('/setup.php'), true, 302);
     exit;
 }
 
@@ -817,17 +819,17 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Comments Updates</title>
-    <link rel="stylesheet" href="/public/style.css?v=<?php echo h((string)$styleVersion); ?>">
+    <link rel="stylesheet" href="<?php echo h(pc_url('/public/style.css', $config)); ?>?v=<?php echo h((string)$styleVersion); ?>">
 </head>
 <body class="admin">
     <main class="admin-container">
         <div class="admin-top-actions">
-            <a class="button" href="/settings.php">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-back"></use></svg>
+            <a class="button" href="<?php echo h(pc_url('/settings.php', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-back"></use></svg>
                 <span>Back to settings</span>
             </a>
-            <a class="button danger" href="/logout.php">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-logout"></use></svg>
+            <a class="button danger" href="<?php echo h(pc_url('/logout.php', $config)); ?>">
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-logout"></use></svg>
                 <span>Log out</span>
             </a>
         </div>
@@ -849,12 +851,12 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             <?php endif; ?>
             <p><strong>Repository:</strong> <a href="https://github.com/kevquirk/purecomments" target="_blank" rel="noopener noreferrer">github.com/kevquirk/purecomments</a></p>
             <p>
-                <a class="button" href="/updates.php?check=1">
-                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-upgrade"></use></svg>
+                <a class="button" href="<?php echo h(pc_url('/updates.php', $config)); ?>?check=1">
+                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-upgrade"></use></svg>
                     Check latest release
                 </a>
-                <a class="button" href="/updates.php?package_plan=1">
-                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-upgrade"></use></svg>
+                <a class="button" href="<?php echo h(pc_url('/updates.php', $config)); ?>?package_plan=1">
+                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-upgrade"></use></svg>
                     Inspect release package
                 </a>
             </p>
@@ -921,10 +923,10 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
                         </ul>
                     <?php endif; ?>
 
-                    <form method="post" action="/updates.php" onsubmit="return confirm('Apply latest update now? This will replace core files and keep /config.php, /db, /setup.php, and all .htaccess files.');">
+                    <form method="post" action="<?php echo h(pc_url('/updates.php', $config)); ?>" onsubmit="return confirm('Apply latest update now? This will replace core files and keep /config.php, /db, /setup.php, and all .htaccess files.');">
                         <input type="hidden" name="csrf_token" value="<?php echo h((string) $_SESSION['csrf_token']); ?>">
                         <button class="button" type="submit" name="apply_update" value="1">
-                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-upgrade"></use></svg>
+                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-upgrade"></use></svg>
                             Apply latest update
                         </button>
                     </form>
@@ -936,7 +938,7 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             <section class="admin-section">
                 <h2>Backup restore</h2>
                 <p>Backups in <code>/backup</code> are excluded from updates and can be used for rollback.</p>
-                <form method="post" action="/updates.php" class="admin-form">
+                <form method="post" action="<?php echo h(pc_url('/updates.php', $config)); ?>" class="admin-form">
                     <input type="hidden" name="csrf_token" value="<?php echo h((string) $_SESSION['csrf_token']); ?>">
                     <label for="backup_name">Available backups</label>
                     <select id="backup_name" name="backup_name" required>
@@ -946,11 +948,11 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
                     </select>
                     <div class="admin-action">
                         <button class="button" type="submit" name="restore_backup" value="1" onclick="return confirm('Restore this backup now? Current core files will be replaced.');">
-                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-upgrade"></use></svg>
+                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-upgrade"></use></svg>
                             Restore selected backup
                         </button>
                         <button class="button danger" type="submit" name="delete_backup" value="1" onclick="return confirm('Delete this backup permanently? This cannot be undone.');">
-                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-delete"></use></svg>
+                            <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-delete"></use></svg>
                             Delete selected backup
                         </button>
                     </div>

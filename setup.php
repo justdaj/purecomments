@@ -1,13 +1,15 @@
 <?php
 declare(strict_types=1);
 
+require __DIR__ . '/includes/url.php';
+
 $configPath = __DIR__ . '/config.php';
 require __DIR__ . '/includes/config_builder.php';
 $errors = [];
 $saved = false;
 
 if (is_file($configPath)) {
-    header('Location: /', true, 302);
+    header('Location: ' . pc_url('/'), true, 302);
     exit;
 }
 
@@ -112,7 +114,7 @@ if ($saved) {
     if (!$deleted) {
         $query['setup_cleanup'] = 'failed';
     }
-    header('Location: /login.php?' . http_build_query($query), true, 302);
+    header('Location: ' . pc_url('/login.php') . '?' . http_build_query($query), true, 302);
     exit;
 }
 $styleVersion = filemtime(__DIR__ . '/public/style.css');
@@ -123,7 +125,7 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Pure Comments Setup</title>
-    <link rel="stylesheet" href="/public/style.css?v=<?php echo h((string)$styleVersion); ?>">
+    <link rel="stylesheet" href="<?php echo h(pc_url('/public/style.css')); ?>?v=<?php echo h((string)$styleVersion); ?>">
 </head>
 <body class="admin">
     <main class="admin-container">
@@ -224,7 +226,7 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             <input id="source_name" name="source_name" value="<?php echo h($_POST['source_name'] ?? ''); ?>">
 
             <button type="submit">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="/public/icons/sprite.svg#icon-login"></use></svg>
+                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg')); ?>#icon-login"></use></svg>
                 <span>Create config and database</span>
             </button>
         </form>
