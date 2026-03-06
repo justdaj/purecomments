@@ -112,6 +112,12 @@ function handle_comments_index(array $config, string $slug): void
 
 function handle_submit_comment(array $config): void
 {
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
+    if (is_submit_rate_limited($config, $ip)) {
+        respond_json(['error' => 'Too many requests. Please wait before submitting again.'], 429);
+    }
+
     $input = json_decode(file_get_contents('php://input'), true);
     if (!is_array($input)) {
         respond_json(['error' => 'Validation failed'], 422);
@@ -129,6 +135,8 @@ function handle_submit_comment(array $config): void
     if ($honeypot !== '' || !is_valid_spam_challenge_answer($config, $challenge)) {
         respond_json(['error' => 'Validation failed'], 422);
     }
+
+    register_submit_attempt($config, $ip);
 
     if (!validate_post_slug($postSlug)) {
         respond_json(['error' => 'Validation failed'], 422);
@@ -242,6 +250,65 @@ function is_valid_spam_challenge_answer(array $config, string $submitted): bool
     }
 
     return hash_equals(mb_strtolower($configured), $submittedNormalized);
+}
+
+function is_submit_rate_limited(array $config, string $ip): bool
+{
+    $windowSeconds = 10 * 60;
+    $maxAttempts = 5;
+    $store = load_submit_rate_limit_store($config);
+    $key = hash('sha256', $ip);
+    $now = time();
+    $recent = array_filter(
+        (array)($store[$key]['attempts'] ?? []),
+        static fn($ts): bool => is_int($ts) && $ts >= ($now - $windowSeconds)
+    );
+    return count($recent) >= $maxAttempts;
+}
+
+function register_submit_attempt(array $config, string $ip): void
+{
+    $windowSeconds = 10 * 60;
+    $now = time();
+    $store = load_submit_rate_limit_store($config);
+    $key = hash('sha256', $ip);
+    $attempts = array_values(array_filter(
+        (array)($store[$key]['attempts'] ?? []),
+        static fn($ts): bool => is_int($ts) && $ts >= ($now - $windowSeconds)
+    ));
+    $attempts[] = $now;
+    $store[$key] = ['attempts' => $attempts];
+    save_submit_rate_limit_store($config, $store);
+}
+
+function load_submit_rate_limit_store(array $config): array
+{
+    $path = submit_rate_limit_store_path($config);
+    if (!is_file($path)) {
+        return [];
+    }
+    $raw = @file_get_contents($path);
+    if ($raw === false || $raw === '') {
+        return [];
+    }
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function save_submit_rate_limit_store(array $config, array $store): void
+{
+    $path = submit_rate_limit_store_path($config);
+    $encoded = json_encode($store);
+    if ($encoded === false) {
+        return;
+    }
+    @file_put_contents($path, $encoded, LOCK_EX);
+}
+
+function submit_rate_limit_store_path(array $config): string
+{
+    $dbPath = (string)($config['db_path'] ?? (__DIR__ . '/../db/comments.sqlite'));
+    return dirname($dbPath) . '/submit-rate-limit.json';
 }
 
 function missing_required_config_keys(array $config): array
