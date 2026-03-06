@@ -27,11 +27,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $moderationBaseUrl = trim((string)($_POST['moderation_base_url'] ?? ''));
     $timezone = trim((string)($_POST['timezone'] ?? default_comments_timezone()));
     $dateFormat = trim((string)($_POST['date_format'] ?? default_comments_date_format()));
-    $awsRegion = trim((string)($_POST['aws_region'] ?? ''));
-    $awsAccessKey = trim((string)($_POST['aws_access_key'] ?? ''));
-    $awsSecretKey = trim((string)($_POST['aws_secret_key'] ?? ''));
-    $sourceEmail = trim((string)($_POST['source_email'] ?? ''));
-    $sourceName = trim((string)($_POST['source_name'] ?? ''));
+    $emailProvider = trim((string)($_POST['email_provider'] ?? ''));
+    if ($emailProvider === 'ses') {
+        $awsRegion = trim((string)($_POST['aws_region'] ?? ''));
+        $awsAccessKey = trim((string)($_POST['aws_access_key'] ?? ''));
+        $awsSecretKey = trim((string)($_POST['aws_secret_key'] ?? ''));
+        $sourceEmail = trim((string)($_POST['source_email'] ?? ''));
+        $sourceName = trim((string)($_POST['source_name'] ?? ''));
+        $smtpHost = '';
+        $smtpPort = '587';
+        $smtpUser = '';
+        $smtpPwd = '';
+        $smtpEnc = 'tls';
+    } elseif ($emailProvider === 'smtp') {
+        $smtpHost = trim((string)($_POST['smtp_host'] ?? ''));
+        $smtpPort = trim((string)($_POST['smtp_port'] ?? '587'));
+        $smtpUser = trim((string)($_POST['smtp_user'] ?? ''));
+        $smtpPwd = trim((string)($_POST['smtp_pwd'] ?? ''));
+        $smtpEnc = trim((string)($_POST['smtp_enc'] ?? 'tls'));
+        $awsRegion = '';
+        $awsAccessKey = '';
+        $awsSecretKey = '';
+        $sourceEmail = '';
+        $sourceName = '';
+    } else {
+        $awsRegion = '';
+        $awsAccessKey = '';
+        $awsSecretKey = '';
+        $sourceEmail = '';
+        $sourceName = '';
+        $smtpHost = '';
+        $smtpPort = '587';
+        $smtpUser = '';
+        $smtpPwd = '';
+        $smtpEnc = 'tls';
+    }
 
     if ($adminUsername === '') {
         $errors[] = 'Admin username is required.';
@@ -69,6 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($dateFormat === '') {
         $errors[] = 'Date format is required.';
     }
+    if ($emailProvider === 'smtp') {
+        if ($smtpHost === '') {
+            $errors[] = 'SMTP host is required.';
+        }
+        if ($smtpPort === '' || !ctype_digit($smtpPort)) {
+            $errors[] = 'SMTP port must be a number.';
+        }
+        if (!in_array($smtpEnc, ['tls', 'ssl', ''], true)) {
+            $errors[] = 'SMTP encryption must be tls, ssl, or none.';
+        }
+    }
 
     $sodiumHex = bin2hex(random_bytes(32));
 
@@ -92,6 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'aws_secret_key' => $awsSecretKey,
             'source_email' => $sourceEmail,
             'source_name' => $sourceName,
+            'smtp_host' => $smtpHost,
+            'smtp_port' => $smtpPort,
+            'smtp_user' => $smtpUser,
+            'smtp_pwd' => $smtpPwd,
+            'smtp_enc' => $smtpEnc,
             'notify_email' => $notifyEmail,
             'moderation_base_url' => rtrim($moderationBaseUrl, '/') . '/',
         ]);
@@ -206,24 +252,54 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             <label for="author_email">Author email</label>
             <input id="author_email" name="author_email" type="email" required value="<?php echo h($_POST['author_email'] ?? ''); ?>">
 
+            <h2>Email notifications (optional)</h2>
+            <label for="email_provider">Email provider</label>
+            <select id="email_provider" name="email_provider">
+                <option value="">None</option>
+                <option value="ses" <?php echo ($_POST['email_provider'] ?? '') === 'ses' ? 'selected' : ''; ?>>Amazon SES</option>
+                <option value="smtp" <?php echo ($_POST['email_provider'] ?? '') === 'smtp' ? 'selected' : ''; ?>>SMTP</option>
+            </select>
+
             <label for="notify_email">Moderation notify email</label>
-            <input id="notify_email" name="notify_email" type="email" required value="<?php echo h($_POST['notify_email'] ?? ''); ?>">
+            <input id="notify_email" name="notify_email" type="email" value="<?php echo h($_POST['notify_email'] ?? ''); ?>">
 
-            <h2>Amazon SES (optional)</h2>
-            <label for="aws_region">AWS region</label>
-            <input id="aws_region" name="aws_region" placeholder="eu-west-1" value="<?php echo h($_POST['aws_region'] ?? ''); ?>">
+            <div id="ses-settings" class="admin-form-section" hidden>
+                <label for="aws_region">AWS region</label>
+                <input id="aws_region" name="aws_region" placeholder="eu-west-1" value="<?php echo h($_POST['aws_region'] ?? ''); ?>">
 
-            <label for="aws_access_key">AWS access key</label>
-            <input id="aws_access_key" name="aws_access_key" value="<?php echo h($_POST['aws_access_key'] ?? ''); ?>">
+                <label for="aws_access_key">AWS access key</label>
+                <input id="aws_access_key" name="aws_access_key" value="<?php echo h($_POST['aws_access_key'] ?? ''); ?>">
 
-            <label for="aws_secret_key">AWS secret key</label>
-            <input id="aws_secret_key" name="aws_secret_key" value="<?php echo h($_POST['aws_secret_key'] ?? ''); ?>">
+                <label for="aws_secret_key">AWS secret key</label>
+                <input id="aws_secret_key" name="aws_secret_key" value="<?php echo h($_POST['aws_secret_key'] ?? ''); ?>">
 
-            <label for="source_email">SES source email</label>
-            <input id="source_email" name="source_email" type="email" value="<?php echo h($_POST['source_email'] ?? ''); ?>">
+                <label for="source_email">Source email address</label>
+                <input id="source_email" name="source_email" type="email" value="<?php echo h($_POST['source_email'] ?? ''); ?>">
 
-            <label for="source_name">SES source name</label>
-            <input id="source_name" name="source_name" value="<?php echo h($_POST['source_name'] ?? ''); ?>">
+                <label for="source_name">Source name</label>
+                <input id="source_name" name="source_name" value="<?php echo h($_POST['source_name'] ?? ''); ?>">
+            </div>
+
+            <div id="smtp-settings" class="admin-form-section" hidden>
+                <label for="smtp_host">SMTP host</label>
+                <input id="smtp_host" name="smtp_host" placeholder="smtp.example.com" value="<?php echo h($_POST['smtp_host'] ?? ''); ?>">
+
+                <label for="smtp_port">SMTP port</label>
+                <input id="smtp_port" name="smtp_port" type="number" min="1" max="65535" placeholder="587" value="<?php echo h($_POST['smtp_port'] ?? '587'); ?>">
+
+                <label for="smtp_enc">Encryption</label>
+                <select id="smtp_enc" name="smtp_enc">
+                    <option value="tls" <?php echo ($_POST['smtp_enc'] ?? 'tls') === 'tls' ? 'selected' : ''; ?>>STARTTLS (port 587)</option>
+                    <option value="ssl" <?php echo ($_POST['smtp_enc'] ?? '') === 'ssl' ? 'selected' : ''; ?>>SSL/TLS (port 465)</option>
+                    <option value="" <?php echo ($_POST['smtp_enc'] ?? '') === '' ? 'selected' : ''; ?>>None (port 25)</option>
+                </select>
+
+                <label for="smtp_user">SMTP username</label>
+                <input id="smtp_user" name="smtp_user" autocomplete="off" value="<?php echo h($_POST['smtp_user'] ?? ''); ?>">
+
+                <label for="smtp_pwd">SMTP password</label>
+                <input id="smtp_pwd" name="smtp_pwd" type="password" autocomplete="new-password" value="<?php echo h($_POST['smtp_pwd'] ?? ''); ?>">
+            </div>
 
             <button type="submit">
                 <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg')); ?>#icon-login"></use></svg>
@@ -231,6 +307,17 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             </button>
         </form>
     </main>
+<script>
+(function () {
+    var sel = document.getElementById('email_provider');
+    function update() {
+        document.getElementById('ses-settings').hidden = sel.value !== 'ses';
+        document.getElementById('smtp-settings').hidden = sel.value !== 'smtp';
+    }
+    sel.addEventListener('change', update);
+    update();
+}());
+</script>
 </body>
 </html>
 <?php

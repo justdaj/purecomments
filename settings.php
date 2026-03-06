@@ -43,12 +43,34 @@ $form = [
     'aws_secret_key' => (string)($config['aws']['secret_key'] ?? ''),
     'source_email' => (string)($config['aws']['source_email'] ?? ''),
     'source_name' => (string)($config['aws']['source_name'] ?? ''),
+    'smtp_host' => (string)($config['smtp']['host'] ?? ''),
+    'smtp_port' => (string)($config['smtp']['port'] ?? '587'),
+    'smtp_user' => (string)($config['smtp']['user'] ?? ''),
+    'smtp_pwd' => (string)($config['smtp']['pwd'] ?? ''),
+    'smtp_enc' => (string)($config['smtp']['enc'] ?? 'tls'),
 ];
+
+$emailProvider = '';
+if (!empty($config['smtp']['host'])) {
+    $emailProvider = 'smtp';
+} elseif (!empty($config['aws']['access_key'])) {
+    $emailProvider = 'ses';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = (string)($_POST['csrf_token'] ?? '');
     if (!hash_equals((string)$_SESSION['csrf_token'], $token)) {
         $errors[] = 'Invalid CSRF token.';
+    } elseif (($_POST['action'] ?? '') === 'test_email') {
+        require_once __DIR__ . '/includes/ses.php';
+        $testTo = (string)($config['moderation']['notify_email'] ?? '');
+        if ($testTo === '') {
+            $errors[] = 'No notification email address is configured.';
+        } elseif (ses_send_email($config, $testTo, 'Pure Comments: test email', 'This is a test email from Pure Comments to confirm your email notifications are working correctly.')) {
+            $messages[] = 'Test email sent to ' . $testTo . '.';
+        } else {
+            $errors[] = 'Test email failed to send. Check your email settings and server error logs.';
+        }
     } else {
         $form['admin_username'] = trim((string)($_POST['admin_username'] ?? ''));
         $form['timezone'] = trim((string)($_POST['timezone'] ?? default_comments_timezone()));
@@ -64,11 +86,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $form['author_email'] = trim((string)($_POST['author_email'] ?? ''));
         $form['notify_email'] = trim((string)($_POST['notify_email'] ?? ''));
         $form['moderation_base_url'] = trim((string)($_POST['moderation_base_url'] ?? ''));
-        $form['aws_region'] = trim((string)($_POST['aws_region'] ?? ''));
-        $form['aws_access_key'] = trim((string)($_POST['aws_access_key'] ?? ''));
-        $form['aws_secret_key'] = trim((string)($_POST['aws_secret_key'] ?? ''));
-        $form['source_email'] = trim((string)($_POST['source_email'] ?? ''));
-        $form['source_name'] = trim((string)($_POST['source_name'] ?? ''));
+        $emailProvider = trim((string)($_POST['email_provider'] ?? ''));
+        if ($emailProvider === 'ses') {
+            $form['aws_region'] = trim((string)($_POST['aws_region'] ?? ''));
+            $form['aws_access_key'] = trim((string)($_POST['aws_access_key'] ?? ''));
+            $form['aws_secret_key'] = trim((string)($_POST['aws_secret_key'] ?? ''));
+            $form['source_email'] = trim((string)($_POST['source_email'] ?? ''));
+            $form['source_name'] = trim((string)($_POST['source_name'] ?? ''));
+            $form['smtp_host'] = '';
+            $form['smtp_port'] = '587';
+            $form['smtp_user'] = '';
+            $form['smtp_pwd'] = '';
+            $form['smtp_enc'] = 'tls';
+        } elseif ($emailProvider === 'smtp') {
+            $form['smtp_host'] = trim((string)($_POST['smtp_host'] ?? ''));
+            $form['smtp_port'] = trim((string)($_POST['smtp_port'] ?? '587'));
+            $form['smtp_user'] = trim((string)($_POST['smtp_user'] ?? ''));
+            $form['smtp_pwd'] = trim((string)($_POST['smtp_pwd'] ?? ''));
+            $form['smtp_enc'] = trim((string)($_POST['smtp_enc'] ?? 'tls'));
+            $form['aws_region'] = '';
+            $form['aws_access_key'] = '';
+            $form['aws_secret_key'] = '';
+            $form['source_email'] = '';
+            $form['source_name'] = '';
+        } else {
+            $form['aws_region'] = '';
+            $form['aws_access_key'] = '';
+            $form['aws_secret_key'] = '';
+            $form['source_email'] = '';
+            $form['source_name'] = '';
+            $form['smtp_host'] = '';
+            $form['smtp_port'] = '587';
+            $form['smtp_user'] = '';
+            $form['smtp_pwd'] = '';
+            $form['smtp_enc'] = 'tls';
+        }
 
         if ($form['admin_username'] === '') {
             $errors[] = 'Admin username is required.';
@@ -120,8 +172,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Comments service URL must be valid (e.g. https://comments.example.com).';
         }
 
-        if ($form['source_email'] !== '' && !filter_var($form['source_email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'SES source email must be valid if set.';
+        if ($emailProvider === 'ses') {
+            if ($form['source_email'] !== '' && !filter_var($form['source_email'], FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'SES source email must be valid if set.';
+            }
+        }
+
+        if ($emailProvider === 'smtp') {
+            if ($form['smtp_host'] === '') {
+                $errors[] = 'SMTP host is required.';
+            }
+            if ($form['smtp_port'] === '' || !ctype_digit($form['smtp_port'])) {
+                $errors[] = 'SMTP port must be a number.';
+            }
+            if (!in_array($form['smtp_enc'], ['tls', 'ssl', ''], true)) {
+                $errors[] = 'SMTP encryption must be tls, ssl, or none.';
+            }
         }
 
         if (empty($errors)) {
@@ -154,6 +220,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'aws_secret_key' => $form['aws_secret_key'],
                 'source_email' => $form['source_email'],
                 'source_name' => $form['source_name'],
+                'smtp_host' => $form['smtp_host'],
+                'smtp_port' => $form['smtp_port'],
+                'smtp_user' => $form['smtp_user'],
+                'smtp_pwd' => $form['smtp_pwd'],
+                'smtp_enc' => $form['smtp_enc'],
                 'notify_email' => $form['notify_email'],
                 'moderation_base_url' => rtrim($form['moderation_base_url'], '/') . '/',
             ]);
@@ -265,31 +336,80 @@ $styleVersion = filemtime(__DIR__ . '/public/style.css');
             <label for="author_email">Author email</label>
             <input id="author_email" name="author_email" type="email" required value="<?php echo h($form['author_email']); ?>">
 
+            <h2>Email notifications (optional)</h2>
+            <label for="email_provider">Email provider</label>
+            <select id="email_provider" name="email_provider">
+                <option value="" <?php echo $emailProvider === '' ? 'selected' : ''; ?>>None</option>
+                <option value="ses" <?php echo $emailProvider === 'ses' ? 'selected' : ''; ?>>Amazon SES</option>
+                <option value="smtp" <?php echo $emailProvider === 'smtp' ? 'selected' : ''; ?>>SMTP</option>
+            </select>
+
             <label for="notify_email">Moderation notify email</label>
-            <input id="notify_email" name="notify_email" type="email" required value="<?php echo h($form['notify_email']); ?>">
+            <input id="notify_email" name="notify_email" type="email" value="<?php echo h($form['notify_email']); ?>">
 
-            <h2>Amazon SES (optional)</h2>
-            <label for="aws_region">AWS region</label>
-            <input id="aws_region" name="aws_region" placeholder="eu-west-1" value="<?php echo h($form['aws_region']); ?>">
+            <div id="ses-settings" class="admin-form-section" hidden>
+                <label for="aws_region">AWS region</label>
+                <input id="aws_region" name="aws_region" placeholder="eu-west-1" value="<?php echo h($form['aws_region']); ?>">
 
-            <label for="aws_access_key">AWS access key</label>
-            <input id="aws_access_key" name="aws_access_key" value="<?php echo h($form['aws_access_key']); ?>">
+                <label for="aws_access_key">AWS access key</label>
+                <input id="aws_access_key" name="aws_access_key" value="<?php echo h($form['aws_access_key']); ?>">
 
-            <label for="aws_secret_key">AWS secret key</label>
-            <input id="aws_secret_key" name="aws_secret_key" value="<?php echo h($form['aws_secret_key']); ?>">
+                <label for="aws_secret_key">AWS secret key</label>
+                <input id="aws_secret_key" name="aws_secret_key" value="<?php echo h($form['aws_secret_key']); ?>">
 
-            <label for="source_email">SES source email</label>
-            <input id="source_email" name="source_email" type="email" value="<?php echo h($form['source_email']); ?>">
+                <label for="source_email">Source email address</label>
+                <input id="source_email" name="source_email" type="email" value="<?php echo h($form['source_email']); ?>">
 
-            <label for="source_name">SES source name</label>
-            <input id="source_name" name="source_name" value="<?php echo h($form['source_name']); ?>">
+                <label for="source_name">Source name</label>
+                <input id="source_name" name="source_name" value="<?php echo h($form['source_name']); ?>">
+            </div>
 
-            <button type="submit">
-                <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-settings"></use></svg>
-                <span>Save settings</span>
-            </button>
+            <div id="smtp-settings" class="admin-form-section" hidden>
+                <label for="smtp_host">SMTP host</label>
+                <input id="smtp_host" name="smtp_host" placeholder="smtp.example.com" value="<?php echo h($form['smtp_host']); ?>">
+
+                <label for="smtp_port">SMTP port</label>
+                <input id="smtp_port" name="smtp_port" type="number" min="1" max="65535" placeholder="587" value="<?php echo h($form['smtp_port']); ?>">
+
+                <label for="smtp_enc">Encryption</label>
+                <select id="smtp_enc" name="smtp_enc">
+                    <option value="tls" <?php echo $form['smtp_enc'] === 'tls' ? 'selected' : ''; ?>>STARTTLS (port 587)</option>
+                    <option value="ssl" <?php echo $form['smtp_enc'] === 'ssl' ? 'selected' : ''; ?>>SSL/TLS (port 465)</option>
+                    <option value="" <?php echo $form['smtp_enc'] === '' ? 'selected' : ''; ?>>None (port 25)</option>
+                </select>
+
+                <label for="smtp_user">SMTP username</label>
+                <input id="smtp_user" name="smtp_user" autocomplete="off" value="<?php echo h($form['smtp_user']); ?>">
+
+                <label for="smtp_pwd">SMTP password</label>
+                <input id="smtp_pwd" name="smtp_pwd" type="password" autocomplete="new-password" value="<?php echo h($form['smtp_pwd']); ?>">
+            </div>
+
+            <div class="admin-form-buttons">
+                <button type="submit">
+                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-settings"></use></svg>
+                    <span>Save settings</span>
+                </button>
+                <?php if ($emailProvider !== '') : ?>
+                <button type="submit" name="action" value="test_email" class="danger">
+                    <svg class="button-icon" aria-hidden="true" focusable="false"><use href="<?php echo h(pc_url('/public/icons/sprite.svg', $config)); ?>#icon-mail"></use></svg>
+                    <span>Send test email</span>
+                </button>
+                <?php endif; ?>
+            </div>
         </form>
     </main>
+<script>
+(function () {
+    var sel = document.getElementById('email_provider');
+    function update() {
+        document.getElementById('ses-settings').hidden = sel.value !== 'ses';
+        document.getElementById('smtp-settings').hidden = sel.value !== 'smtp';
+    }
+    sel.addEventListener('change', update);
+    update();
+}());
+</script>
 </body>
 </html>
 <?php

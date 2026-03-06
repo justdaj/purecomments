@@ -65,6 +65,13 @@ function build_config_php(array $d): string
     $lines[] = "        'source_email' => " . var_export($d['source_email'], true) . ',';
     $lines[] = "        'source_name' => " . var_export($d['source_name'], true) . ',';
     $lines[] = '    ],';
+    $lines[] = "    'smtp' => [";
+    $lines[] = "        'host' => " . var_export($d['smtp_host'], true) . ',';
+    $lines[] = "        'port' => " . var_export((int)$d['smtp_port'], true) . ',';
+    $lines[] = "        'user' => " . var_export($d['smtp_user'], true) . ',';
+    $lines[] = "        'pwd' => " . var_export($d['smtp_pwd'], true) . ',';
+    $lines[] = "        'enc' => " . var_export($d['smtp_enc'], true) . ',';
+    $lines[] = '    ],';
     $lines[] = "    'moderation' => [";
     $lines[] = "        'notify_email' => " . var_export($d['notify_email'], true) . ',';
     $lines[] = "        'base_url' => " . var_export($d['moderation_base_url'], true) . ',';

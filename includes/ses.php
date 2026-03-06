@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 function ses_send_email(array $config, string $to, string $subject, string $textBody, string $htmlBody = ''): bool
 {
+    if (!empty($config['smtp']['host'])) {
+        require_once __DIR__ . '/smtpmail.php';
+        return smtp_send_email($config, $to, $subject, $textBody, $htmlBody);
+    }
+
     if (empty($config['aws']['access_key']) || empty($config['aws']['secret_key'])) {
         return false;
     }

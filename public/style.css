@@ -101,6 +101,10 @@ input {
     margin-bottom: 1rem;
 }
 
+select {
+    margin-bottom: 1rem;
+}
+
 .comments-thread {
   display: flex;
   flex-direction: column;
@@ -235,17 +239,15 @@ a.button,
   stroke-linejoin: round;
 }
 
-.admin-action button.danger,
-a.button.danger,
-.admin-author-reply-actions button.danger {
+button.danger,
+a.button.danger {
     background: var(--bg);
     border-color: var(--red);
     color: var(--red);
 }
 
-.admin-action button.danger:hover,
-a.button.danger:hover,
-.admin-author-reply-actions button.danger:hover {
+button.danger:hover,
+a.button.danger:hover {
     background-color: var(--red);
     color: var(--bg);
 }
@@ -263,6 +265,14 @@ a.button:hover {
     gap: 0.35rem;
     max-width: 45rem;
     padding: 1rem 0;
+}
+
+.admin-form-section {
+    display: contents;
+}
+
+.admin-form-section[hidden] {
+    display: none;
 }
 
 .admin-reply label,
@@ -286,6 +296,17 @@ a.button:hover {
 .admin-form button {
     width: auto;
     align-self: flex-start;
+}
+
+.admin-form-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.admin-form-buttons button {
+    margin: 0;
 }
 
 .comments-empty {
